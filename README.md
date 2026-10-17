@@ -59,16 +59,17 @@ sensor := Tlv493d-a1b6 device --mode=Tlv493d.MODE-ULTRA-LOW-POWER
 `sample-period-ms` is how often new data appears. Polling faster is
 harmless, it just returns the same sample again.
 
-**`MODE-FAST` not recommended**
-
-`MODE-FAST` is available and left to the user to choose. The datasheets call
-for strict I2C timing, a high bus speed (up to 1 MHz) and the /INT line,
-since a readout must not happen during a conversion. The breakout board used
-for testing does not expose /INT, and fast mode has not been tried here. On
-that kind of setup, reads may fail or return inconsistent data (assumption,
-not measured). Boards and hosts with a faster bus and an /INT pin may do
-better. `sample-period-ms` returns 0 in this mode (no fixed period), and the
-joystick layer then paces itself at its 5 ms minimum.
+> [!WARNING]
+> **`MODE-FAST` not recommended**
+>
+> `MODE-FAST` is available and left to the user to choose. The datasheets call
+> for strict I2C timing, a high bus speed (up to 1 MHz) and the /INT line,
+> since a readout must not happen during a conversion. The breakout board used
+> for testing does not expose /INT, and fast mode has not been tried here. On
+> that kind of setup, reads may fail or return inconsistent data (assumption,
+> not measured). Boards and hosts with a faster bus and an /INT pin may do
+> better. `sample-period-ms` returns 0 in this mode (no fixed period), and the
+> joystick layer then paces itself at its 5 ms minimum.
 
 ### Interrupt (/INT)
 
