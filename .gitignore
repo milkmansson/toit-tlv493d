@@ -2,8 +2,9 @@
 
 ## This Package - so I can keep reference material with source:
 .reference/
+.backup/
 
-## Toit 
+## Toit
 .packages/
 .jaguar
 
@@ -15,7 +16,7 @@
 .classpath
 .settings/
 
-## OS Junk 
+## OS Junk
 # macOS
 .DS_Store
 .AppleDouble
@@ -32,4 +33,3 @@ $RECYCLE.BIN/
 ## Environment & Secrets
 .env
 .env.*
-
