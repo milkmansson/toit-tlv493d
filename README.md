@@ -84,9 +84,10 @@ sensor := Tlv493d-a1b6 device --interrupt
 ```
 
 The driver only configures the chip. Wiring a GPIO to the /INT line and
-reacting to the pulse is up to the application. This is useful on a board that
-routes /INT to its own pin, since the pulse signals when a new sample is ready.
-The bit's polarity comes from Infineon's C library, not the datasheet.
+reacting to the pulse is up to the application. This is made available for
+boards that route /INT to its own pin, since the pulse signals when a new
+sample is ready.  (The bit's polarity comes from Infineon's C library, not the
+datasheet.)
 
 Without a dedicated /INT pin, polling is simpler: `read` retries if it collides
 with a conversion, and `sample-period-ms` gives the pace. Tapping the pulses
