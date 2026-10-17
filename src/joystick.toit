@@ -85,17 +85,17 @@ class Joystick:
   /** Event: the stick was released. */
   static RELEASE ::= 6
 
-  // Fraction of full deflection at which a direction is entered or left.
-  // Entering at a higher value than leaving gives hysteresis.
-  static DIRECTION-ENTER_ ::= 0.6
-  static DIRECTION-EXIT_ ::= 0.4
-
   sensor_/Tlv493d
   center-x_/float := 0.0
   center-y_/float := 0.0
   center-z_/float := 0.0
   travel-mt_/float := 15.0
   deadzone_/float := 0.1
+  // Fractions of full deflection at which a direction is entered or left.
+  // Entering at a higher value than leaving gives hysteresis.
+  direction-enter_/float := 0.5
+  direction-exit_/float := 0.3
+  travel-percentile_/float := 0.9
   min-delta_/float := 0.02
   press-on-mt_/float := 8.0
   press-off-mt_/float := 5.0
@@ -127,6 +127,16 @@ class Joystick:
   The $min-delta is the smallest change in x or y (in normalized units) that
     triggers the $on-change lambda.
 
+  The $direction-enter and $direction-exit are the fractions (0.0 to 1.0) of
+    full deflection at which a direction event starts and ends.  The enter
+    value must be above the exit value; the gap between them is the hysteresis.
+
+  The $travel-percentile (above 0.0, up to 1.0) is the share of the readings
+    that $learn-travel keeps below its result.  The default of 0.9 ignores the
+    largest 10% of readings, so a short spike (for example from pushing the
+    stick down) does not inflate the travel.  Use 1.0 for the single largest
+    reading.
+
   The $press-on-mt and $press-off-mt are the Z-field changes at which a push
     is detected and released.  Keep $press-off-mt below $press-on-mt for
     hysteresis.  Tilting also disturbs the Z axis, so these usually need tuning.
@@ -139,6 +149,9 @@ class Joystick:
       --travel-mt/float=15.0
       --deadzone/float=0.1
       --min-delta/float=0.02
+      --direction-enter/float=0.5
+      --direction-exit/float=0.3
+      --travel-percentile/float=0.9
       --press-on-mt/float=8.0
       --press-off-mt/float=5.0
       --swap-xy/bool=false
@@ -147,9 +160,14 @@ class Joystick:
       --invert-z/bool=false:
     if travel-mt <= 0.0: throw "INVALID_ARGUMENT"
     if deadzone < 0.0 or deadzone >= 1.0: throw "INVALID_ARGUMENT"
+    if direction-exit < 0.0 or direction-enter > 1.0 or direction-exit >= direction-enter: throw "INVALID_ARGUMENT"
+    if travel-percentile <= 0.0 or travel-percentile > 1.0: throw "INVALID_ARGUMENT"
     travel-mt_ = travel-mt
     deadzone_ = deadzone
     min-delta_ = min-delta
+    direction-enter_ = direction-enter
+    direction-exit_ = direction-exit
+    travel-percentile_ = travel-percentile
     press-on-mt_ = press-on-mt
     press-off-mt_ = press-off-mt
     swap-xy_ = swap-xy
@@ -200,20 +218,27 @@ class Joystick:
 
   Call $calibrate first.  Then, during the $duration, push the stick to its
     limits in all directions.  Returns the new travel in mT.
+
+  The result is not the single largest reading but the one at the constructor's
+    travel-percentile, so that short spikes are ignored.
   */
   learn-travel --duration/Duration=(Duration --s=5) -> float:
     deadline := Time.monotonic-us + duration.in-us
-    peak := 0.0
+    magnitudes := []
     delay-ms := max 5 sensor_.sample-period-ms
     while Time.monotonic-us < deadline:
       reading := sensor_.read
       dx := reading.x - center-x_
       dy := reading.y - center-y_
-      peak = max peak (math.sqrt (dx * dx + dy * dy))
+      magnitudes.add (math.sqrt (dx * dx + dy * dy))
       sleep --ms=delay-ms
-    if peak < 1.0: throw "TLV493D: no movement detected while learning travel"
-    travel-mt_ = peak
-    return peak
+    if magnitudes.is-empty: throw "TLV493D: no samples while learning travel"
+    sorted := magnitudes.sort
+    index := ((sorted.size - 1) * travel-percentile_).round
+    value := sorted[index]
+    if value < 1.0: throw "TLV493D: no movement detected while learning travel"
+    travel-mt_ = value
+    return value
 
   /** The most recent state, or null if $update has not been called yet. */
   state -> JoystickState?:
@@ -280,12 +305,12 @@ class Joystick:
 
     // Direction, with hysteresis.
     new-direction := direction_
-    if magnitude >= DIRECTION-ENTER_:
+    if magnitude >= direction-enter_:
       if nx.abs >= ny.abs:
         new-direction = nx > 0.0 ? RIGHT : LEFT
       else:
         new-direction = ny > 0.0 ? UP : DOWN
-    else if magnitude < DIRECTION-EXIT_:
+    else if magnitude < direction-exit_:
       new-direction = CENTER
 
     // Push, with hysteresis.

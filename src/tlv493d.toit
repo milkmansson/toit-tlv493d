@@ -156,8 +156,9 @@ Tested on an Adafruit TLV493 breakout.  The I2C address is selected by the
   (0x1F).
 
 # Notes
-The /INT output shares the SCL pin on this chip.  This driver keeps the
-  interrupt disabled; it is not needed for polling.
+The /INT output shares the SCL pin on this chip.  By default the driver keeps
+  the interrupt disabled, which is all that polling needs.  Pass `--interrupt`
+  to the constructor to enable it; see there for the caveats.
 
 The datasheet asks the host to issue an I2C reset after power-up.  The
   reset procedure is not documented in the sources used for this driver, and
@@ -194,6 +195,7 @@ class Tlv493d-a1b6 extends Tlv493d:
 
   address-select_/int := 0
   temperature-enabled_/bool := true
+  interrupt-enabled_/bool := false
   reserved-mod1_/int := 0
   reserved-byte2_/int := 0
   reserved-mod2_/int := 0
@@ -212,14 +214,24 @@ class Tlv493d-a1b6 extends Tlv493d:
   If $temperature is false the temperature conversion is skipped, which the
     datasheet says reduces the supply current by about 25%.  The
     $Reading.temperature is then null.
+
+  If $interrupt is true the chip's /INT output is enabled: at the end of each
+    conversion it pulls its /INT line low for about 1.5 us.  On the A1B6 that
+    line is the SCL pin itself, so enabling it puts these pulses on your I2C
+    clock line.  Only enable it if you know how you will use it, for example
+    on a board that routes /INT to its own pin.  The driver only configures the
+    chip; connecting a GPIO and reacting to the pulse is up to your
+    application.  The default is false.
   */
   constructor device/serial.Device
       --mode/int=Tlv493d.MODE-LOW-POWER
       --address-select/int=0
       --temperature/bool=true
+      --interrupt/bool=false
       --logger/log.Logger=log.default:
     address-select_ = address-select
     temperature-enabled_ = temperature
+    interrupt-enabled_ = interrupt
     super device (logger.with-name "tlv493d-a1b6")
 
     if address-select < 0 or address-select > 3: throw "INVALID_ARGUMENT"
@@ -233,6 +245,7 @@ class Tlv493d-a1b6 extends Tlv493d:
     write-config_ mode
     mode_ = mode
     warn-about-mode_ mode
+    if interrupt: logger_.info "/INT enabled: the chip pulses the /INT (SCL) line after each conversion"
     if mode != Tlv493d.MODE-POWER-DOWN:
       sleep --ms=(max 20 sample-period-ms)
       if not is-functional:
@@ -305,7 +318,10 @@ class Tlv493d-a1b6 extends Tlv493d:
       lp-period = 1
     else:
       throw "INVALID_ARGUMENT"
-    mod1 := (address-select_ << 5) | (reserved-mod1_ << 3) | MOD1-INT-DISABLE_ | (fast << 1) | low
+    mod1 := (address-select_ << 5) | (reserved-mod1_ << 3) | (fast << 1) | low
+    // INT bit: 1 disables the interrupt, 0 enables it (polarity from the
+    // Infineon library's INT_ENABLE/INT_DISABLE values).
+    if not interrupt-enabled_: mod1 |= MOD1-INT-DISABLE_
     mod2 := (lp-period << 6) | MOD2-PARITY-TEST_ | reserved-mod2_
     if not temperature-enabled_: mod2 |= MOD2-TEMP-DISABLE_
     bytes := ByteArray 4
@@ -376,6 +392,7 @@ class Tlv493d-a2bw extends Tlv493d:
 
   address-select_/int := 0
   temperature-enabled_/bool := true
+  interrupt-enabled_/bool := false
   range_/int := RANGE-FULL
   config_/int := 0
   mod1_/int := 0
@@ -396,15 +413,21 @@ class Tlv493d-a2bw extends Tlv493d:
 
   The $address-select is the 2-bit IICADR value (0-3) that matches the address
     the sensor responds at; see $I2C-ADDRESSES.
+
+  If $interrupt is true the chip's /INT output is enabled and pulses at the end
+    of each conversion.  The driver only configures the chip; connecting a GPIO
+    and reacting to the pulse is up to your application.  The default is false.
   */
   constructor device/serial.Device
       --mode/int=Tlv493d.MODE-LOW-POWER
       --range/int=RANGE-FULL
       --address-select/int=0
       --temperature/bool=true
+      --interrupt/bool=false
       --logger/log.Logger=log.default:
     address-select_ = address-select
     temperature-enabled_ = temperature
+    interrupt-enabled_ = interrupt
     super device (logger.with-name "tlv493d-a2bw")
 
     if address-select < 0 or address-select > 3: throw "INVALID_ARGUMENT"
@@ -424,9 +447,11 @@ class Tlv493d-a2bw extends Tlv493d:
     logger_.debug "type/hardware version byte: 0x$(%02x regs[REG-VERSION_])"
 
     // Follow the Infineon default configuration: collision avoidance on,
-    // interrupt disabled, 1-byte read protocol, matching IICADR.
+    // interrupt as requested (disabled by default), 1-byte read protocol,
+    // matching IICADR.
     cleared := mod1_ & ~(MOD1-FP_ | 0b01100000 | MOD1-CA_ | MOD1-INT_)
-    mod1_ = cleared | (address-select << 5) | MOD1-PR_ | MOD1-INT_
+    mod1_ = cleared | (address-select << 5) | MOD1-PR_
+    if not interrupt: mod1_ |= MOD1-INT_
     write-mod1_
     set-measurement_
     set-range range

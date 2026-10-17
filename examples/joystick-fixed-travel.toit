@@ -7,24 +7,27 @@ import i2c
 import tlv493d show *
 import tlv493d.joystick show *
 
-sda-pin-number := 21    // Please set these correctly for your device.
-scl-pin-number := 20    // Please set these correctly for your device.
+/*
+  Please set pins correctly for your device.
+  I2C bus speed is 400_000 - slow to 100_000 or less to troubleshoot I2C issues.
+*/
+
+sda-pin-number := 21
+scl-pin-number := 20
+frequency := 100_000
+travel-mt := 7.0
 
 main:
   bus := i2c.Bus
       --sda=sda-pin-number   // (gpio.Pin sda-pin-number)
       --scl=scl-pin-number   // (gpio.Pin scl-pin-number)
-      --frequency=400_000
+      --frequency=frequency
 
-  // Swap in Tlv493dA2bw here and the rest stays the same.
+  // Swap in Tlv493d-a2bw here and the rest stays the same.
   sensor := Tlv493d-a1b6 (bus.device Tlv493d-a1b6.I2C-ADDRESS)
-  joystick := Joystick sensor
+  joystick := Joystick sensor --travel-mt=travel-mt
 
-  print "Leave the stick at rest..."
-  sleep --ms=1000
-  joystick.calibrate
-  print "Now push the stick to all its limits for 5 seconds."
-  print "Learned travel: $(%.1f joystick.learn-travel) mT"
+  print "Fixed travel: $travel-mt mT (no calibration)"
 
   // Discrete events: fire once per transition.
   joystick.add Joystick.UP (:: print "UP")
