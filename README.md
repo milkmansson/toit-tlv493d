@@ -1,8 +1,7 @@
 # Toit driver for the Infineon TLV493D 3D magnetic sensor
 
-Driver for using the Infineon TLV493D 3D magnetic sensor (X, Y, Z field and
-temperature over I2C) in Toit, plus an optional joystick layer for building a
-magnet-in-a-stick input device.
+Reads X, Y, Z field and temperature over I2C, plus an optional joystick layer
+for building a magnet-in-a-stick input device.
 
 | Variant | Range | I2C address | Status |
 |---|---|---|---|
@@ -62,9 +61,8 @@ harmless, it just returns the same sample again.
 > [!WARNING]
 > **`MODE-FAST` not recommended**
 >
-> `MODE-FAST` is available and left to the user to choose. The datasheets call
-> for strict I2C timing, a high bus speed (up to 1 MHz) and the /INT line,
-> since a readout must not happen during a conversion. The breakout board used
+> The datasheets call for strict I2C timing, a high bus speed (up to 1 MHz)
+> and the /INT line, since a readout must not happen during a conversion. The breakout board used
 > for testing does not expose /INT, and fast mode has not been tried here. On
 > that kind of setup, reads may fail or return inconsistent data (assumption,
 > not measured). Boards and hosts with a faster bus and an /INT pin may do
@@ -84,10 +82,9 @@ sensor := Tlv493d-a1b6 device --interrupt
 ```
 
 The driver only configures the chip. Wiring a GPIO to the /INT line and
-reacting to the pulse is up to the application. This is made available for
-boards that route /INT to its own pin, since the pulse signals when a new
-sample is ready.  (The bit's polarity comes from Infineon's C library, not the
-datasheet.)
+reacting to the pulse is up to the application. The option is for boards that
+route /INT to its own pin, where the pulse signals that a new sample is ready.
+(The bit's polarity comes from Infineon's C library, not the datasheet.)
 
 Without a dedicated /INT pin, polling is simpler: `read` retries if it collides
 with a conversion, and `sample-period-ms` gives the pace. Tapping the pulses
@@ -154,7 +151,6 @@ independent Toit implementation; no Infineon source code is copied. Where
 behaviour is inferred rather than documented, a comment in the source says so.
 
 ## About Toit
-One would assume the user knows what Toit is.  If not:
 > Toit is a high-level, memory-safe language, with container/VM technology built
 > specifically for microcontrollers (not a desktop language port). It gives fast
 > iteration (live reloads over Wi-Fi in seconds), robust serviceability, and
