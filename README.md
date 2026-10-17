@@ -47,17 +47,8 @@ Run `examples/i2c-scan.toit` first if the address is uncertain.
 | `MODE-LOW-POWER` (default) | ~100 Hz | ~97 Hz | |
 | `MODE-ULTRA-LOW-POWER` | ~10 Hz | ~6 Hz | Logs a warning: a joystick lags by up to ~100 ms |
 | `MODE-MASTER-CONTROLLED` | host-driven | host-driven | Logs a warning; see the datasheet |
-| `MODE-FAST` | continuous, kHz | continuous, kHz | Logs a warning; see below. Untested |
+| `MODE-FAST` | continuous, kHz | continuous, kHz | Logs a warning; see below. **Untested, not recommended** |
 | `MODE-POWER-DOWN` | yes | not supported | |
-
-`MODE-FAST` is available and left to the user to choose. The datasheets call
-for strict I2C timing, a high bus speed (up to 1 MHz) and the /INT line,
-since a readout must not happen during a conversion. The breakout board used
-for testing does not expose /INT, and fast mode has not been tried here. On
-that kind of setup, reads may fail or return inconsistent data (assumption,
-not measured). Boards and hosts with a faster bus and an /INT pin may do
-better. `sample-period-ms` returns 0 in this mode (no fixed period), and the
-joystick layer then paces itself at its 5 ms minimum.
 
 Pass the mode to the constructor, or call `set-mode` later:
 
@@ -67,6 +58,17 @@ sensor := Tlv493d-a1b6 device --mode=Tlv493d.MODE-ULTRA-LOW-POWER
 
 `sample-period-ms` is how often new data appears. Polling faster is
 harmless, it just returns the same sample again.
+
+**`MODE-FAST` not recommended**
+
+`MODE-FAST` is available and left to the user to choose. The datasheets call
+for strict I2C timing, a high bus speed (up to 1 MHz) and the /INT line,
+since a readout must not happen during a conversion. The breakout board used
+for testing does not expose /INT, and fast mode has not been tried here. On
+that kind of setup, reads may fail or return inconsistent data (assumption,
+not measured). Boards and hosts with a faster bus and an /INT pin may do
+better. `sample-period-ms` returns 0 in this mode (no fixed period), and the
+joystick layer then paces itself at its 5 ms minimum.
 
 ### Interrupt (/INT)
 
