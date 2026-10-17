@@ -153,10 +153,6 @@ and the Infineon TLV493D-A1B6 and TLV493D-A2BW datasheets. This is an
 independent Toit implementation; no Infineon source code is copied. Where
 behaviour is inferred rather than documented, a comment in the source says so.
 
-## License
-
-MIT, see `LICENSE`. Examples are Zero-Clause BSD, see `examples/EXAMPLES_LICENSE`.
-
 ## About Toit
 One would assume the user knows what Toit is.  If not:
 > Toit is a high-level, memory-safe language, with container/VM technology built
