@@ -90,6 +90,17 @@ abstract class Tlv493d:
     application polls at.  See the datasheet for the exact trigger behavior.
   */
   static MODE-MASTER-CONTROLLED ::= 3
+  /**
+  Fast mode.  The sensor converts continuously, at several kHz.
+
+  Per the datasheets this mode needs strict I2C timing, a high bus speed (up
+    to 1 MHz) and the /INT line, because a readout must not happen during a
+    conversion.  Whether it works at all depends on the board and the host,
+    so it is the application's choice.  A warning is logged when selected.
+    Magnetic noise is also higher than in the low-power modes (an assumption
+    to verify: the noise figure quoted in the datasheet is 0.1 mT rms).
+  */
+  static MODE-FAST ::= 4
 
   dev_/serial.Device
   logger_/log.Logger
@@ -121,8 +132,8 @@ abstract class Tlv493d:
   /**
   Switches to the given $mode.
 
-  One of $MODE-POWER-DOWN, $MODE-ULTRA-LOW-POWER, $MODE-LOW-POWER or
-    $MODE-MASTER-CONTROLLED.
+  One of $MODE-POWER-DOWN, $MODE-ULTRA-LOW-POWER, $MODE-LOW-POWER,
+    $MODE-MASTER-CONTROLLED or $MODE-FAST.
   */
   abstract set-mode mode/int -> none
 
@@ -133,7 +144,8 @@ abstract class Tlv493d:
   /**
   The time between two new samples in the current mode, in ms.
 
-  Returns 0 for $MODE-MASTER-CONTROLLED (rate set by the caller) and for
+  Returns 0 for $MODE-MASTER-CONTROLLED (rate set by the caller), for
+    $MODE-FAST (continuous conversion, no fixed period) and for
     $MODE-POWER-DOWN (no samples).  Polling faster than this just returns
     the same sample again.
   */
@@ -147,6 +159,8 @@ abstract class Tlv493d:
       logger_.warn "ultra-low-power mode (~10 Hz): a joystick built on this will lag by up to ~100 ms"
     else if mode == MODE-MASTER-CONTROLLED:
       logger_.warn "master-controlled mode: regular polling is required, see the datasheet"
+    else if mode == MODE-FAST:
+      logger_.warn "fast mode: the datasheet calls for strict I2C timing, a high bus speed (up to 1 MHz) and the /INT line; reads may fail or return inconsistent data without them"
 
 /**
 Driver for the TLV493D-A1B6.
@@ -205,7 +219,9 @@ class Tlv493d-a1b6 extends Tlv493d:
 
   The $mode defaults to $Tlv493d.MODE-LOW-POWER (about 100 Hz).  Choose
     $Tlv493d.MODE-ULTRA-LOW-POWER (about 10 Hz) to save power; a warning is
-    logged because a joystick then responds slowly.
+    logged because a joystick then responds slowly.  $Tlv493d.MODE-FAST is
+    also available (continuous conversion); a warning is logged, as it needs
+    strict I2C timing, a high bus speed and /INT.
 
   The $address-select is the 2-bit IICADR value (0-3) written to the sensor.
     The default, 0, corresponds to the addresses $I2C-ADDRESS and
@@ -316,6 +332,8 @@ class Tlv493d-a1b6 extends Tlv493d:
       fast = 1
       low = 1
       lp-period = 1
+    else if mode == Tlv493d.MODE-FAST:
+      fast = 1
     else:
       throw "INVALID_ARGUMENT"
     mod1 := (address-select_ << 5) | (reserved-mod1_ << 3) | (fast << 1) | low
@@ -389,6 +407,7 @@ class Tlv493d-a2bw extends Tlv493d:
   // MODE field values (from the Infineon library).
   static MODE-BITS-LOW-POWER_ ::= 0b00
   static MODE-BITS-MASTER-CONTROLLED_ ::= 0b01
+  static MODE-BITS-FAST_ ::= 0b11
 
   address-select_/int := 0
   temperature-enabled_/bool := true
@@ -407,6 +426,8 @@ class Tlv493d-a2bw extends Tlv493d:
     $Tlv493d.MODE-POWER-DOWN is not supported on this variant and throws.
     $Tlv493d.MODE-ULTRA-LOW-POWER selects the ~6 Hz low-power rate and logs a
     warning, because a joystick then responds very slowly.
+    $Tlv493d.MODE-FAST is available too; it logs a warning (strict I2C
+    timing, up to 1 MHz bus and /INT are called for).
 
   The $range is one of $RANGE-FULL, $RANGE-SHORT or $RANGE-EXTRA-SHORT.  A
     shorter range has a higher resolution but saturates at a lower field.
@@ -497,6 +518,8 @@ class Tlv493d-a2bw extends Tlv493d:
       prd = 1  // 6 Hz.
     else if mode == Tlv493d.MODE-MASTER-CONTROLLED:
       mode-bits = MODE-BITS-MASTER-CONTROLLED_
+    else if mode == Tlv493d.MODE-FAST:
+      mode-bits = MODE-BITS-FAST_
     else if mode == Tlv493d.MODE-POWER-DOWN:
       throw "UNSUPPORTED: power-down is not implemented for the A2BW"
     else:

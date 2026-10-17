@@ -29,9 +29,14 @@ main:
   bus := i2c.Bus --sda=19 --scl=20 --frequency=400_000
   sensor := Tlv493d-a1b6 (bus.device Tlv493d-a1b6.I2C-ADDRESS)
   while true:
-    print sensor.read  // x=0.10 y=-0.20 z=1.30 mT, T=24.5 C
+    reading := sensor.read
+    print reading  // x=0.10 y=-0.20 z=1.30 mT, T=24.5 C
+    print "x=$(%.2f reading.x) y=$(%.2f reading.y) z=$(%.2f reading.z) mT"
     sleep --ms=100
 ```
+
+The field values are in mT. `reading.temperature` is in degrees Celsius (null if
+temperature measurement is disabled).
 
 Run `examples/i2c-scan.toit` first if the address is uncertain.
 
@@ -42,10 +47,17 @@ Run `examples/i2c-scan.toit` first if the address is uncertain.
 | `MODE-LOW-POWER` (default) | ~100 Hz | ~97 Hz | |
 | `MODE-ULTRA-LOW-POWER` | ~10 Hz | ~6 Hz | Logs a warning: a joystick lags by up to ~100 ms |
 | `MODE-MASTER-CONTROLLED` | host-driven | host-driven | Logs a warning; see the datasheet |
+| `MODE-FAST` | continuous, kHz | continuous, kHz | Logs a warning; see below. Untested |
 | `MODE-POWER-DOWN` | yes | not supported | |
 
-The fast (kHz) mode is deliberately not offered: it needs strict I2C timing
-and the /INT line, which the tested breakout board did not expose.
+`MODE-FAST` is available and left to the user to choose. The datasheets call
+for strict I2C timing, a high bus speed (up to 1 MHz) and the /INT line,
+since a readout must not happen during a conversion. The breakout board used
+for testing does not expose /INT, and fast mode has not been tried here. On
+that kind of setup, reads may fail or return inconsistent data (assumption,
+not measured). Boards and hosts with a faster bus and an /INT pin may do
+better. `sample-period-ms` returns 0 in this mode (no fixed period), and the
+joystick layer then paces itself at its 5 ms minimum.
 
 Pass the mode to the constructor, or call `set-mode` later:
 
@@ -58,9 +70,9 @@ harmless, it just returns the same sample again.
 
 ### Interrupt (/INT)
 
-On the A1B6 the /INT output is not a separate pin, it shares the SCL pin. When
-enabled, the chip pulls SCL low for about 1.5 µs at the end of each conversion
-(datasheet: "End-of-Conversion /INT pulse ... 1.5 µs low-active (when
+On the tested module, the /INT output is not a separate pin, it shares the SCL
+pin. When enabled, the chip pulls SCL low for about 1.5 µs at the end of each
+conversion (datasheet: "End-of-Conversion /INT pulse ... 1.5 µs low-active (when
 activated)"). The driver keeps it disabled by default. Pass `--interrupt` to the
 constructor to enable it:
 
