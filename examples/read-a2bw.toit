@@ -7,8 +7,8 @@ import i2c
 import log
 import tlv493d show *
 
-sda-pin-number := 21    // Please set these correctly for your device.
-scl-pin-number := 20    // Please set these correctly for your device.
+sda-pin-number := 21    // Set these to match the board in use.
+scl-pin-number := 20    // Set these to match the board in use.
 
 // EXPERIMENTAL: the A2BW support has not been tested on hardware.
 main:

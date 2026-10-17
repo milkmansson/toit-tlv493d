@@ -16,7 +16,7 @@ Two variants are supported through a common interface:
 Both return the magnetic flux density in mT on three axes ($Reading), plus an
   optional die temperature.  The driver is stateless with respect to tasks: it
   never starts a task or calls user code.  Poll it with $Tlv493d.read from
-  your own application loop (see $Tlv493d.sample-period-ms for how often).
+  the application's own loop (see $Tlv493d.sample-period-ms for how often).
 
 # Sources
 Register layouts, bit positions and conversion factors were taken from the
@@ -86,7 +86,7 @@ abstract class Tlv493d:
   /**
   Master-controlled mode.  A conversion is started by the host.
 
-  Reads return the previous conversion.  The sample rate is whatever your
+  Reads return the previous conversion.  The sample rate is whatever the
     application polls at.  See the datasheet for the exact trigger behavior.
   */
   static MODE-MASTER-CONTROLLED ::= 3
@@ -146,7 +146,7 @@ abstract class Tlv493d:
     if mode == MODE-ULTRA-LOW-POWER:
       logger_.warn "ultra-low-power mode (~10 Hz): a joystick built on this will lag by up to ~100 ms"
     else if mode == MODE-MASTER-CONTROLLED:
-      logger_.warn "master-controlled mode: you must poll regularly, see the datasheet"
+      logger_.warn "master-controlled mode: regular polling is required, see the datasheet"
 
 /**
 Driver for the TLV493D-A1B6.
@@ -209,7 +209,7 @@ class Tlv493d-a1b6 extends Tlv493d:
 
   The $address-select is the 2-bit IICADR value (0-3) written to the sensor.
     The default, 0, corresponds to the addresses $I2C-ADDRESS and
-    $I2C-ADDRESS-ALT.  Leave it unless you know the sensor was reprogrammed.
+    $I2C-ADDRESS-ALT.  Leave it unless the sensor is known to have been reprogrammed.
 
   If $temperature is false the temperature conversion is skipped, which the
     datasheet says reduces the supply current by about 25%.  The
@@ -217,10 +217,10 @@ class Tlv493d-a1b6 extends Tlv493d:
 
   If $interrupt is true the chip's /INT output is enabled: at the end of each
     conversion it pulls its /INT line low for about 1.5 us.  On the A1B6 that
-    line is the SCL pin itself, so enabling it puts these pulses on your I2C
-    clock line.  Only enable it if you know how you will use it, for example
+    line is the SCL pin itself, so enabling it puts these pulses on the I2C
+    clock line.  Only enable it with a clear plan for using it, for example
     on a board that routes /INT to its own pin.  The driver only configures the
-    chip; connecting a GPIO and reacting to the pulse is up to your
+    chip; connecting a GPIO and reacting to the pulse is up to the
     application.  The default is false.
   */
   constructor device/serial.Device
@@ -338,8 +338,8 @@ class Tlv493d-a1b6 extends Tlv493d:
 Driver for the TLV493D-A2BW.  EXPERIMENTAL: not tested on hardware.
 
 The register layout was transcribed from the Infineon C library.  Treat every
-  result with suspicion until it has been checked against a real sensor, and
-  please report what you find.
+  result with suspicion until it has been checked against a real sensor.
+  Findings from real hardware are welcome.
 
 The default I2C address is $I2C-ADDRESS.  The sensor supports four addresses,
   selected through the 2-bit IICADR field; $I2C-ADDRESSES lists them in
@@ -416,7 +416,7 @@ class Tlv493d-a2bw extends Tlv493d:
 
   If $interrupt is true the chip's /INT output is enabled and pulses at the end
     of each conversion.  The driver only configures the chip; connecting a GPIO
-    and reacting to the pulse is up to your application.  The default is false.
+    and reacting to the pulse is up to the application.  The default is false.
   */
   constructor device/serial.Device
       --mode/int=Tlv493d.MODE-LOW-POWER

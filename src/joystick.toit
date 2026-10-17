@@ -43,8 +43,8 @@ It works with any $Tlv493d: the $Tlv493d-a1b6 and the (experimental)
   $Tlv493d-a2bw look the same to it, because everything is computed in mT.
 
 # Polling, not tasks
-Like the sensor drivers, this class starts no tasks.  Call $update from your
-  own loop, at least as often as the sensor produces samples (see
+Like the sensor drivers, this class starts no tasks.  $update is called from the
+  application's own loop, at least as often as the sensor produces samples (see
   $Tlv493d.sample-period-ms).  Each call reads the sensor, updates the
   $state and calls the registered lambdas before it returns.  Polling
   faster than the sensor's rate is harmless: the same sample is simply seen
@@ -118,7 +118,7 @@ class Joystick:
   Call $calibrate before use, with the stick at rest.
 
   The $travel-mt is the field change, in mT, that corresponds to full
-    deflection of the stick.  It depends on your magnet and mechanics.  Use
+    deflection of the stick.  It depends on the magnet and mechanics.  Use
     $learn-travel to measure it.  The default is a guess.
 
   The $deadzone is the fraction (0.0 to less than 1.0) of full deflection

@@ -5,8 +5,8 @@
 import gpio
 import i2c
 
-sda-pin-number := 21    // Please set these correctly for your device.
-scl-pin-number := 20    // Please set these correctly for your device.
+sda-pin-number := 21    // Set these to match the board in use.
+scl-pin-number := 20    // Set these to match the board in use.
 
 main:
   bus := i2c.Bus

@@ -6,13 +6,13 @@ magnet-in-a-stick input device.
 
 | Variant | Range | I2C address | Status |
 |---|---|---|---|
-| TLV493D-A1B6 (Adafruit TLV493 breakout) | +/-130 mT | 0x5E (ADDR high), 0x1F (ADDR low) | Written for this chip; see "Status" |
+| TLV493D-A1B6 <br>*(Adafruit TLV493 breakout)* | +/-130 mT | 0x5E (ADDR high),<br> 0x1F (ADDR low) | Written/tested with this chip. |
 | TLV493D-A2BW | +/-160 mT, selectable shorter ranges | 0x35 (derived, unverified) | **Experimental, untested** |
 
 ## Status
 
 - No chip-ID register exists on the A1B6, so the variant is chosen by the class
-  you instantiate (`Tlv493d-a1b6` or `Tlv493d-a2bw`), not detected.
+  that is instantiated (`Tlv493d-a1b6` or `Tlv493d-a2bw`), not detected.
 - Reset after power-up: the A1B6 datasheet says the host should issue an I2C
   reset. The procedure is not in the documents, so it is not implemented. If
   the sensor misbehaves after a brown-out, power-cycle it.
@@ -33,7 +33,7 @@ main:
     sleep --ms=100
 ```
 
-Use `examples/i2c-scan.toit` first if you are unsure of the address.
+Run `examples/i2c-scan.toit` first if the address is uncertain.
 
 ## Power modes and rate
 
@@ -69,8 +69,8 @@ sensor := Tlv493d-a1b6 device --interrupt
 ```
 
 The driver only configures the chip. Wiring a GPIO to the /INT line and
-reacting to the pulse is up to your application. This is useful on a board that
-routes /INT to its own pin, since the pulse tells you when a new sample is ready.
+reacting to the pulse is up to the application. This is useful on a board that
+routes /INT to its own pin, since the pulse signals when a new sample is ready.
 The bit's polarity comes from Infineon's C library, not the datasheet.
 
 Without a dedicated /INT pin, polling is simpler: `read` retries if it collides
@@ -82,11 +82,11 @@ on a shared bus ("not recommended, unless timing constraints").
 
 ## The joystick layer
 
-`import tlv493d.joystick show *` gives you a `Joystick` that works with either
+`import tlv493d.joystick show *` provides a `Joystick` that works with either
 variant, because it only uses the field in mT.
 
-Like the sensor drivers, it starts **no tasks**. You call `joystick.update`
-from your own loop (or one shared housekeeping task). Each call reads the sensor,
+Like the sensor drivers, it starts **no tasks**. The application calls `joystick.update`
+from its own loop (or one shared housekeeping task). Each call reads the sensor,
 updates the state and calls any registered lambdas.
 
 There are three ways to consume the input, because buttons and sticks are
@@ -95,7 +95,7 @@ different kinds of signal:
 - **State.** `joystick.state` (or the return value of `update`) is the current
   position: `x`, `y` in -1.0..1.0, `magnitude`, `angle`, a 4-way `direction`,
   and `pressed`. Best for continuous things such as steering or a cursor, where
-  you want the value *now* and an old value is worthless.
+  the value *now* matters and an old value is worthless.
 - **Change callback.** `joystick.on-change (:: |state| ...)` runs when the stick
   moved by at least `--min-delta`, and once more on returning to centre. It
   always receives the latest state, never a queue of old ones.
@@ -119,7 +119,7 @@ while true:
 ### Tuning
 
 Defaults for `--travel-mt`, `--press-on-mt` and `--press-off-mt` are guesses.
-They depend on your magnet and mechanics. Tilting the stick also disturbs
+They depend on the magnet and mechanics. Tilting the stick also disturbs
 the Z axis, so push detection usually needs tuning. Use `--swap-xy` and the
 `--invert-*` switches to match how the sensor is mounted.
 
@@ -142,7 +142,7 @@ behaviour is inferred rather than documented, a comment in the source says so.
 MIT, see `LICENSE`. Examples are Zero-Clause BSD, see `examples/EXAMPLES_LICENSE`.
 
 ## About Toit
-One would assume you are here because you know what Toit is.  If you dont:
+One would assume the user knows what Toit is.  If not:
 > Toit is a high-level, memory-safe language, with container/VM technology built
 > specifically for microcontrollers (not a desktop language port). It gives fast
 > iteration (live reloads over Wi-Fi in seconds), robust serviceability, and

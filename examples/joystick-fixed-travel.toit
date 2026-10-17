@@ -8,7 +8,7 @@ import tlv493d show *
 import tlv493d.joystick show *
 
 /*
-  Please set pins correctly for your device.
+  Set the pins to match the board in use.
   I2C bus speed is 400_000 - slow to 100_000 or less to troubleshoot I2C issues.
 */
 
@@ -41,8 +41,8 @@ main:
   // Continuous values: fires when the stick moved noticeably.
   joystick.on-change (:: |state| print state)
 
-  // The driver starts no tasks.  Your application polls it, ideally from one
-  // shared housekeeping task if you have several drivers.
+  // The driver starts no tasks.  The application polls it, ideally from one
+  // shared housekeeping task when several drivers are in use.
   while true:
     joystick.update
     sleep --ms=(max 5 sensor.sample-period-ms)
